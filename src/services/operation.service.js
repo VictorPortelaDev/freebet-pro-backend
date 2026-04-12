@@ -1,0 +1,96 @@
+const prisma = require("../lib/prisma");
+
+async function createOperation(data) {
+  return await prisma.operation.create({
+    data,
+  });
+}
+
+async function getAllOperations({
+  page,
+  limit,
+  period,
+  cpf,
+  tipo,
+  sort = "createdAt",
+  order = "desc",
+  minLucro,
+  maxLucro,
+  userId,
+}) {
+  const skip = (page - 1) * limit;
+
+  let where = {
+    userId,
+  };
+
+  // CPF
+  if (cpf) {
+    where.cpf = cpf;
+  }
+
+  // TIPO Múltiplo
+  if (tipo) {
+    const tipos = tipo.split(",");
+    where.tipo = { in: tipos };
+  }
+
+  // Filtro por lucro
+  if (minLucro !== undefined || maxLucro !== undefined) {
+    where.lucro = {};
+    if (minLucro !== undefined) {
+      where.lucro.gte = minLucro;
+    }
+
+    if (maxLucro !== undefined) {
+      where.lucro.lte = maxLucro;
+    }
+  }
+
+  // filtro por DATA
+  if (period) {
+    const now = new Date();
+    let startDate;
+
+    if (period === "7d") {
+      startDate = new Date(now.setDate(now.getDate() - 7));
+    }
+
+    if (period === "30d") {
+      startDate = new Date(now.setDate(now.getDate() - 30));
+    }
+
+    if (startDate) {
+      where.createdAt = {
+        gte: startDate,
+      };
+    }
+  }
+
+  // Query
+  const [operations, total] = await Promise.all([
+    prisma.operation.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        [sort]: order,
+      },
+    }),
+    prisma.operation.count({ where }),
+  ]);
+
+  return {
+    data: operations,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+module.exports = {
+  createOperation,
+  getAllOperations,
+};

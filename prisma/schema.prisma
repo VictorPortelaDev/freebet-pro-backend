@@ -1,0 +1,40 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String      @id @default(uuid())
+  email      String      @unique
+  password   String
+  operations Operation[]
+  createdAt  DateTime    @default(now())
+}
+
+model Operation {
+  id      String @id @default(uuid())
+  casa    String
+  esporte String
+  odd     Float
+  stake   Float
+  retorno Float
+  lucro   Float
+  roi     Float
+  cpf     String
+  tipo    String //freebet | surebet | normal  
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  @@index([userId])
+
+  createdAt DateTime @default(now())
+}
