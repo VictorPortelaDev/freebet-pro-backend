@@ -1,8 +1,14 @@
 const prisma = require("../lib/prisma");
 
 async function createOperation(data) {
+  const lucro = data.retorno - data.stake;
+  const roi = (lucro / data.stake) * 100
   return await prisma.operation.create({
-    data,
+    data: {
+      ...data,
+      lucro,
+      roi
+    },
   });
 }
 
@@ -90,7 +96,58 @@ async function getAllOperations({
     },
   };
 }
+
+async function updateOperations({id, data, userId}) {
+  const operation = await prisma.operation.findUnique({
+    where: {id},
+  });
+
+  if(!operation) {
+    const err = new Error("Operação não encontrada");
+    err.status = 404;
+    throw err;
+  }
+
+  // segurança 
+  if(operation.userId !== userId) {
+    const err = new Error("Não autorizado");
+    err.status = 403;
+    throw err;
+  }
+
+  const updated = await prisma.operation.update({
+    where: {id},
+    data,
+  });
+
+  return updated;
+}
+
+async function deleteOperations({id, userId}) {
+  const operation = await prisma.operation.findUnique({
+    where: {id},
+  });
+
+  if(!operation) {
+    const err = new Error("Operação não encontrada");
+    err.status = 404;
+    throw err;
+  }
+
+  // segurança
+  if(operation.userId !== userId) {
+    const err = new Error("Não autorizado");
+    err.status = 403;
+    throw err;
+  }
+
+  await prisma.operation.delete({
+    where: {id},
+  });
+}
 module.exports = {
   createOperation,
   getAllOperations,
+  updateOperations,
+  deleteOperations
 };
